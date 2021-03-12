@@ -18,6 +18,12 @@ CITY_ELEMENT_CLASS = ""
 PRICE_ELEMENT = ""
 PRICE_ELEMENT_CLASS = ""
 NEXT_PAGE_SELECTOR = ""
+URL_TO_YOUR_GOOGLE_FORM = ""
+PUBLISH_DATE_XPATH = ""
+ADDRESS_XPATH = ""
+PRICE_XPATH = ""
+LINK_XPATH = ""
+SUBMIT_BUTTON_XPATH = ""
 
 
 def crawler(website_url, search_object):
@@ -66,6 +72,30 @@ def crawler(website_url, search_object):
     search_object["next_page"] = f"{DOMAIN_URL}{subsequent_page.get('href')}"
 
 
+def fill_form(search_object):
+    driver = webdriver.Chrome(executable_path=CHROME_DRIVER_PATH)
+
+    driver.get(URL_TO_YOUR_GOOGLE_FORM)
+
+    time.sleep(2)
+
+    publish_date = driver.find_element_by_xpath(PUBLISH_DATE_XPATH)
+    address = driver.find_element_by_xpath(ADDRESS_XPATH)
+    price = driver.find_element_by_xpath(PRICE_XPATH)
+    link = driver.find_element_by_xpath(LINK_XPATH)
+    submit_button = driver.find_element_by_xpath(SUBMIT_BUTTON_XPATH)
+
+    for i in range(len(search_object["publish_dates"])):
+        try:
+            publish_date.send_keys(search_object["publish_dates"][i])
+            address.send_keys(search_object["addresses"][i])
+            price.send_keys(search_object["prices"][i])
+            link.send_keys(search_object["links"][i])
+            submit_button.click()
+        except:
+            print("An exception occurred")
+
+
 def main():
     searched_page = MAIN_SEARCHED_WEBSITE
     first_called = True
@@ -86,7 +116,7 @@ def main():
             searched_page = search_results["next_page"]
             crawler(searched_page, search_results)
 
-        # fill_form(search_results)
+        fill_form(search_results)
 
 
 # main()
