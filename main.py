@@ -26,7 +26,7 @@ PUBLISH_DATE_XPATH = ""
 ADDRESS_XPATH = ""
 PRICE_XPATH = ""
 LINK_XPATH = ""
-SUBMIT_BTN_XPATH = ""
+SUBMIT_BUTTON_XPATH = ""
 
 
 def crawler(website_url, search_object):
@@ -140,7 +140,7 @@ def main():
         "addresses": [],
         "prices": [],
         "links": [],
-        "next_page": ""
+        "nex_page": ""
     }
 
     for i in range(5):
@@ -159,7 +159,7 @@ def main():
                 "addresses": [],
                 "prices": [],
                 "links": [],
-                "next_page": ""
+                "nex_page": ""
             }
             crawler(searched_page, search_results)
 
