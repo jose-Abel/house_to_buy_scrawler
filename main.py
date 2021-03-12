@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import requests
 from selenium import webdriver
 import time
+import re
 
 CHROME_DRIVER_PATH = ""
 USER_AGENT = ""
@@ -13,6 +14,8 @@ PUBLISH_DATE_ELEMENT = ""
 PUBLISH_DATE_CLASS = ""
 STREET_ELEMENT = ""
 STREET_ELEMENT_CLASS = ""
+STREET_ELEMENT2 = ""
+STREET_ELEMENT_CLASS2 = ""
 CITY_ELEMENT = ""
 CITY_ELEMENT_CLASS = ""
 PRICE_ELEMENT = ""
@@ -23,7 +26,7 @@ PUBLISH_DATE_XPATH = ""
 ADDRESS_XPATH = ""
 PRICE_XPATH = ""
 LINK_XPATH = ""
-SUBMIT_BUTTON_XPATH = ""
+SUBMIT_BTN_XPATH = ""
 
 
 def crawler(website_url, search_object):
@@ -52,14 +55,26 @@ def crawler(website_url, search_object):
 
         date = soup_inner_page.find(name=PUBLISH_DATE_ELEMENT, class_=PUBLISH_DATE_CLASS).getText()
 
+        street = ""
+
         # FOR THE ADDRESS HAD TO DIVIDE IN TWO ELEMENTS, STREET AND CITY, TO GET THE FULL ADDRESS
-        street = soup_inner_page.find(name=STREET_ELEMENT, class_=STREET_ELEMENT_CLASS).getText()
+        if soup_inner_page.find(name=STREET_ELEMENT, class_=STREET_ELEMENT_CLASS):
+            street = soup_inner_page.find(name=STREET_ELEMENT, class_=STREET_ELEMENT_CLASS).getText()
+
+        # STREET SHOW UP IN TWO DIFFERENT PLACES DEPENDING
+        if street is None:
+            street = soup_inner_page.find(name=STREET_ELEMENT2, class_=STREET_ELEMENT_CLASS2).getText()
 
         # FOR THE CITY ELEMENT HAD TO REMOVE THE SUBSTRING 'location_on' TO CLEAN THE DATA
-        city = soup_inner_page.select(f".{CITY_ELEMENT_CLASS} {CITY_ELEMENT}")[0].getText()
-        city = city.replace("location_on", "")
+        city_remove_location = soup_inner_page.select(f".{CITY_ELEMENT_CLASS} {CITY_ELEMENT}")[0].getText()
+        city_removing_loc = city_remove_location.replace("location_on", "")
+        city = city_removing_loc.strip()
 
-        address = f"{street} {city}"
+        if street is not None:
+            address = remove_emoji(f"{street} {city}")
+        else:
+            address = remove_emoji(f"{city}")
+
         price = soup_inner_page.find(name=PRICE_ELEMENT, class_=PRICE_ELEMENT_CLASS).getText()
 
         search_object["publish_dates"].append(date)
@@ -75,58 +90,80 @@ def crawler(website_url, search_object):
 def fill_form(search_object):
     driver = webdriver.Chrome(executable_path=CHROME_DRIVER_PATH)
 
-    driver.get(URL_TO_YOUR_GOOGLE_FORM)
+    for values in range(len(search_object["publish_dates"])):
+        time.sleep(2)
+        driver.get(URL_TO_YOUR_GOOGLE_FORM)
 
-    time.sleep(2)
+        publish_date = driver.find_element_by_xpath(PUBLISH_DATE_XPATH)
+        address = driver.find_element_by_xpath(ADDRESS_XPATH)
+        price = driver.find_element_by_xpath(PRICE_XPATH)
+        link = driver.find_element_by_xpath(LINK_XPATH)
+        submit_button = driver.find_element_by_xpath(SUBMIT_BUTTON_XPATH)
 
-    publish_date = driver.find_element_by_xpath(PUBLISH_DATE_XPATH)
-    address = driver.find_element_by_xpath(ADDRESS_XPATH)
-    price = driver.find_element_by_xpath(PRICE_XPATH)
-    link = driver.find_element_by_xpath(LINK_XPATH)
-    submit_button = driver.find_element_by_xpath(SUBMIT_BUTTON_XPATH)
+        time.sleep(2)
+        publish_date.send_keys(search_object["publish_dates"][values])
+        address.send_keys(search_object["addresses"][values])
+        price.send_keys(search_object["prices"][values])
+        link.send_keys(search_object["links"][values])
+        submit_button.click()
 
-    for i in range(len(search_object["publish_dates"])):
-        try:
-            publish_date.send_keys(search_object["publish_dates"][i])
-            address.send_keys(search_object["addresses"][i])
-            price.send_keys(search_object["prices"][i])
-            link.send_keys(search_object["links"][i])
-            submit_button.click()
-        except:
-            print("An exception occurred")
+
+def remove_emoji(text):
+    emoj = re.compile("["
+        u"\U0001F600-\U0001F64F"  # emoticons
+        u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+        u"\U0001F680-\U0001F6FF"  # transport & map symbols
+        u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+        u"\U00002500-\U00002BEF"  # chinese char
+        u"\U00002702-\U000027B0"
+        u"\U00002702-\U000027B0"
+        u"\U000024C2-\U0001F251"
+        u"\U0001f926-\U0001f937"
+        u"\U00010000-\U0010ffff"
+        u"\u2640-\u2642" 
+        u"\u2600-\u2B55"
+        u"\u200d"
+        u"\u23cf"
+        u"\u23e9"
+        u"\u231a"
+        u"\ufe0f"  # dingbats
+        u"\u3030"
+                      "]+", re.UNICODE)
+    return re.sub(emoj, '', text)
 
 
 def main():
     searched_page = MAIN_SEARCHED_WEBSITE
     first_called = True
+    search_results = {
+        "publish_dates": [],
+        "addresses": [],
+        "prices": [],
+        "links": [],
+        "next_page": ""
+    }
 
     for i in range(5):
-        print(searched_page)
-        search_results = {
-            "publish_dates": [],
-            "addresses": [],
-            "prices": [],
-            "links": [],
-        }
         if first_called:
+            print("Is searching the first one")
+            print(searched_page)
             crawler(searched_page, search_results)
             first_called = False
 
-        elif not first_called:
+        else:
+            print("Is searching the second and on")
             searched_page = search_results["next_page"]
+            print(searched_page)
+            search_results = {
+                "publish_dates": [],
+                "addresses": [],
+                "prices": [],
+                "links": [],
+                "next_page": ""
+            }
             crawler(searched_page, search_results)
 
         fill_form(search_results)
 
 
-# main()
-searching_results = {
-    "publish_dates": [],
-    "addresses": [],
-    "prices": [],
-    "links": [],
-    "next_page": ""
-}
-crawler(MAIN_SEARCHED_WEBSITE, searching_results)
-
-print(searching_results)
+main()
