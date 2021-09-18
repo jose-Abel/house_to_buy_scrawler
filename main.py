@@ -3,8 +3,9 @@ import requests
 from selenium import webdriver
 import time
 import re
+from pyvirtualdisplay import Display
 
-CHROME_DRIVER_PATH = ""
+CHROME_DRIVER_PATH = "./chromedriver"
 USER_AGENT = ""
 ACCEPT_LANGUAGE = ""
 DOMAIN_URL = ""
@@ -88,7 +89,16 @@ def crawler(website_url, search_object):
 
 
 def fill_form(search_object):
-    driver = webdriver.Chrome(executable_path=CHROME_DRIVER_PATH)
+    display = Display(visible=0, size=(800, 800))
+    display.start()
+    options = webdriver.ChromeOptions()
+    options.add_argument("start-maximized")
+    options.add_argument("disable-infobars")
+    options.add_argument("disable-extensions")
+    options.add_argument("disable-dev-shm-usage")
+    options.add_argument("no-sandbox")
+    options.add_argument("--remote-debugging-port=9222")
+    driver = webdriver.Chrome(executable_path=CHROME_DRIVER_PATH, options=options)
 
     for values in range(len(search_object["publish_dates"])):
         time.sleep(2)
